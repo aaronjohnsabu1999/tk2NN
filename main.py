@@ -2,27 +2,18 @@
 import math
 import matplotlib
 import numpy as np
-import PIL.Image, PIL.ImageTk, PIL.ImageDraw
+# import PIL.Image, PIL.ImageTk, PIL.ImageDraw
 import time
+from colour import Color
 from copy import deepcopy
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
-from statistics import mode
+from random import random
+from statistics import multimode
 from tkinter import *
 from tkinter import messagebox
 
 matplotlib.use("TkAgg")
-
-def nthMinIndex(n, distances):
-    temp = deepcopy(distances)
-    for i in range(n-1):
-        temp = [dist for dist in temp if not (dist == min(temp))]
-    minVal = min(temp)
-    
-    indices = []
-    
-
-
 
 def euDist(x1, y1, x2, y2):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
@@ -30,22 +21,46 @@ def euDist(x1, y1, x2, y2):
 def mhDist(x1, y1, x2, y2):
     return abs(x2 - x1) + abs(y2 - y1)
 
-def colorInitPoints(canvasSet, pointSet = []):
-    initSet = dict(pointSet)
+def colorInitPoints(canvasSet, pointSet):
     for point in pointSet:
-        canvasSet[point[0][1]][point[0][0]] = point[1]
+        try:
+            canvasSet[point[0][1]][point[0][0]] = point[1].lower()
+        except Exception:
+            canvasSet[point[0][1]][point[0][0]] = point[1]
+
+def nthMinIndex(n, distances):
+    temp = deepcopy(distances)
+    for i in range(n):
+        temp = [dist for dist in temp if not (dist == min(temp))]
+    
+    indices = []
+    try:
+        for i in range(len(distances)):
+            if (distances[i] == min(temp)):
+                indices.append(i)
+    except Exception:
+        return []
+    return indices
+
+def minK(k, distances, pointSet):
+    closestK = []
+    # print(distances)
+    for i in range(2*k-1):
+        # print(pointSet[nthMinIndex(i, distances)])
+        for index in nthMinIndex(i, distances):
+            closestK.append(pointSet[index][1])
+    return multimode(closestK)[0]
 
 def distDeter(distType, pointX, pointY, pointSet = []):
     distances = []
-    k = 1
+    k = 2
     for chosenPoint in pointSet:
         if distType == 1:
             distances.append(euDist(pointX, pointY, chosenPoint[0][0], chosenPoint[0][1]))
         else:
             distances.append(mhDist(pointX, pointY, chosenPoint[0][0], chosenPoint[0][1]))
-    print(minK(k, distances, pointSet))
-    # return pointVal
-    return 1
+    
+    return minK(k, distances, pointSet)
     
 ## Euclidean Calculations
 def canvasDetermine(distType, canvasWidth, canvasHeight, pointSet = []):
@@ -55,25 +70,13 @@ def canvasDetermine(distType, canvasWidth, canvasHeight, pointSet = []):
     if distType not in [1, 2]:
         return (canvasSet, 1)
 
-    colorInitPoints(canvasSet, pointSet)
-
     for y in range(0, canvasHeight):
         for x in range(0, canvasWidth):
             canvasSet[y][x] = distDeter(distType, x, y, pointSet)
-            
+    
+    colorInitPoints(canvasSet, pointSet)
+
     return (canvasSet, 0)
-
-(canvas, error) = canvasDetermine(2, 10, 10, [((9, 2), 1), ((4, 7), 2), ((7, 3), 3), ((5, 0), 3), ((8, 1), 2)])
-print()
-for y in range(len(canvas)):
-    for x in range(len(canvas[1])):
-        print(canvas[y][x], end = ' ')
-    print()
-
-
-
-
-
 
 
 
@@ -193,27 +196,6 @@ def removeCircle(event):
         updatePointSpace()
 
 ## General Space Commands
-def bindButtons():
-    global distType
-    if distType.get() == 1:
-        pointSpace.unbind("<Button-1>")
-        pointSpace.unbind("<B1-Motion>")
-        pointSpace.unbind("<Button-3>")
-        pointSpace.unbind("<B3-Motion>")
-        pointSpace.bind("<ButtonPress-1>",   addLineStart)
-        pointSpace.bind("<ButtonRelease-1>", addLineEnd)
-        pointSpace.bind("<Button-3>",        removeLine)
-        pointSpace.bind("<B3-Motion>",       removeLine)
-    elif distType.get() == 2:
-        pointSpace.unbind("<Button-1>")
-        pointSpace.unbind("<B1-Motion>")
-        pointSpace.unbind("<Button-3>")
-        pointSpace.unbind("<B3-Motion>")
-        pointSpace.bind("<ButtonPress-1>",   chooseCircleCenter)
-        pointSpace.bind("<ButtonRelease-1>", chooseCircleRadius)
-        pointSpace.bind("<Button-3>",        removeCircle)
-        pointSpace.bind("<B3-Motion>",       removeCircle)
-
 def clearPointSpace(event):
     global freePoints
     freePoints = []
@@ -271,11 +253,37 @@ def updateOutput(event):
         else:
             messagebox.showinfo("Error", str(e))
         return
-    
+
+
+def colorPicker(pointSet = []):
+    choiceSet = {}
+    for point in pointSet:
+        if not point[1] in choiceSet:
+            choiceSet[point[1]] = Color(rgb=(random(), random(), random()))
+    return choiceSet
+
+def bindButtons():
+    pointSpace.delete("all")
+    updateCanvas()
+
+def updateCanvas():
+    (canvas, error) = canvasDetermine(distType.get(), BORDER_XH - BORDER_XL, BORDER_YH - BORDER_YL, selectPoints)
+    colors          = colorPicker(selectPoints)
+
+    resolution = 1
+    for y in range(resolution, BORDER_YH - BORDER_YL + resolution, resolution*2):
+        for x in range(resolution, BORDER_XH - BORDER_XL + resolution, resolution*2):
+            color = colors[canvas[y][x]]
+            color.saturation = (color.saturation + 1.0)/2.0
+            pointSpace.create_rectangle(x - resolution, y - resolution, x + resolution, y + resolution, fill = color)
+    for point in selectPoints:
+        pointX, pointY = point[0]
+        pointSpace.create_rectangle(pointX - resolution*2, pointY - resolution*2, pointX + resolution*2, pointY + resolution*2, fill = colors[point[1]])
+
 
 ## App Space Variables
-HEIGHT     = 800
-WIDTH      = 400
+HEIGHT     = 500
+WIDTH      = 500
 fileName   = "image"
 fileFormat = "png" 
 
@@ -283,51 +291,65 @@ fileFormat = "png"
 sqSize     =   4
 BORDER_XL  =  50
 BORDER_YL  =  50
-BORDER_XH  = 650
-BORDER_YH  = 250
+BORDER_XH  = 450
+BORDER_YH  = 350
 freePoints = []
 linePoints = []
 circPoints = []
 
 
 ## Root Definition
-# base   = Tk()
-# base.resizable(width = False, height = False)
-# base.title("tk2NN")
-# base.configure(bg = 'grey')
-# base.geometry(str(HEIGHT) + "x" + str(WIDTH))
+base   = Tk()
+base.resizable(width = False, height = False)
+base.title("tk2NN")
+base.configure(bg = 'grey')
+base.geometry(str(HEIGHT) + "x" + str(WIDTH))
 
 
 ## Root-based Variables
-# distType = IntVar()
-# distType.set(1)
+distType = IntVar()
+distType.set(1)
 
 # background_image = PhotoImage(file = './background_01.png')
 # background_label = Label(base, image = background_image)
 # background_label.place(x = 0, y = 0, relwidth = 1, relheight = 1)
 
+selectPoints    = [
+                ((251, 234), 0),
+                ((180,  45), 1),
+                ((203,  50), 2),
+                (( 38, 231), 1),
+                ((386, 182), 3),
+                ((143, 234), 0),
+                ((315, 178), 3),
+                ((280, 264), 2),
+                ((313, 114), 1),
+                ((229, 122), 2),
+                ]
 
 ## Space Definitions
-# pointSpace = Canvas(base, width = BORDER_XH - BORDER_XL, height = BORDER_YH - BORDER_YL, borderwidth = 4, relief = SUNKEN, background = 'black', cursor = 'dot')
-# pointSpace.grid(row = 0, column = 0, columnspan = 3, padx = (BORDER_XL, 5), pady = (BORDER_YL, 5))
-# pointSpace.bind("<Button-2>",  clearPointSpace)
+pointSpace = Canvas(base, width = BORDER_XH - BORDER_XL, height = BORDER_YH - BORDER_YL, borderwidth = 4, relief = SUNKEN, background = 'black', cursor = 'dot')
+pointSpace.grid(row = 0, column = 0, columnspan = 3, padx = (BORDER_XL, 5), pady = (BORDER_YL, 5))
+pointSpace.bind("<Button-2>",  clearPointSpace)
 
-# typeSpace = Frame(base)
-# typeSpace.grid(row = 0, column = 3, pady = (BORDER_YL + 5, 5))
-# chooseLine  = Radiobutton(typeSpace, text = "Euclidean", variable = distType, value = 1, command = bindButtons)
-# chooseLine.pack(anchor = W)
-# chooseCirc  = Radiobutton(typeSpace, text = "Manhattan", variable = distType, value = 2, command = bindButtons)
-# chooseCirc.pack(anchor = W)
+updateCanvas()
 
-# saveSpace = Frame(base)
-# saveSpace.grid(row = 2, column = 0, columnspan = 2, padx = 50)
-# FName = Entry(saveSpace, bg = 'white', bd = 3)
-# FName.pack(side = LEFT)
-# FForm = Entry(saveSpace, bg = 'white', bd = 3)
-# FForm.pack(side = LEFT)
-# FForm.bind("<Return>",  updateOutput)
-# SaveB = Button(saveSpace, bg = '#9999FF', activebackground = '#444499', bd = 3, text = "Save", padx = 3)
-# SaveB.bind("<Button-1>", updateOutput)
-# SaveB.pack(side = LEFT)
+typeSpace = Frame(base)
+typeSpace.grid(row = 1, column = 1, pady = (5, 5))
+chooseEu  = Radiobutton(typeSpace, text = "Euclidean", variable = distType, value = 1, command = bindButtons)
+chooseEu.pack(anchor = W)
+chooseMh  = Radiobutton(typeSpace, text = "Manhattan", variable = distType, value = 2, command = bindButtons)
+chooseMh.pack(anchor = W)
 
-# base.mainloop()
+labelSpace = Frame(base)
+labelSpace.grid(row = 2, column = 0, columnspan = 2, padx = 50)
+FName = Entry(labelSpace, bg = 'white', bd = 3)
+FName.pack(side = LEFT)
+FForm = Entry(labelSpace, bg = 'white', bd = 3)
+FForm.pack(side = LEFT)
+FForm.bind("<Return>",  updateOutput)
+SaveB = Button(labelSpace, bg = '#9999FF', activebackground = '#444499', bd = 3, text = "Save", padx = 3)
+SaveB.bind("<Button-1>", updateOutput)
+SaveB.pack(side = LEFT)
+
+base.mainloop()
