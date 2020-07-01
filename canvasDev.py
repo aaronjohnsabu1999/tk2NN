@@ -1,6 +1,16 @@
 import math
-from copy import deepcopy
-from statistics import multimode
+from copy    import deepcopy
+from general import version
+
+if version() >= 3.8:
+    from statistics import multimode
+else:
+    def multimode(data):
+        data.sort()
+        counts = dict()
+        for i in data:
+            counts[i] = counts.get(i, 0) + 1
+        return([max(counts, key = counts.get)])
 
 def euDist(x1, y1, x2, y2):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)

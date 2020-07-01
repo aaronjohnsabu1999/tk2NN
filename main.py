@@ -1,9 +1,13 @@
+import sys
 import time
 from   PIL       import Image
 from   colour    import Color
 from   random    import random, randint
-from   general   import colorPicker, generatePoints
-from   tkinter   import *
+from   general   import colorPicker, generatePoints, version
+if version() >= 3:
+    from tkinter import *
+else:
+    raise Exception("You must be using Python 3 or above")
 from   canvasDev import canvasDetermine
 
 HEIGHT     = 520
@@ -17,6 +21,7 @@ numLabels  =   3
 numPoints  =   9
 resolution =   1
 k          =   1
+
 
 def clearPointSpace(event):
     global selectPoints

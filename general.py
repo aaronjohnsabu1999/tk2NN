@@ -1,5 +1,9 @@
+import sys
 from colour import Color
 from random import random, randint
+
+def version():
+    return sys.version_info[0]
 
 def colorPicker(pointSet = []):
     choiceSet = {}
