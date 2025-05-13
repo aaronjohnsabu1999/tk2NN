@@ -1,0 +1,19 @@
+canvas:
+  width: 540
+  height: 520
+  border_x_low: 15
+  border_y_low: 15
+  border_x_high: 415
+  border_y_high: 415
+
+knn:
+  default_k: 1
+  default_num_labels: 3
+  default_num_points: 9
+  resolution: 1
+
+gui:
+  bg_color: grey
+  entry_width: 12
+  button_color: "#9999FF"
+  button_active_color: "#444499"
