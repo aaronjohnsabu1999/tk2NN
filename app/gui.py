@@ -1,10 +1,11 @@
 import sys
-from tkinter import *
+import tkinter as tk
+from tkinter import ttk
 from PIL import Image
 from colour import Color
-from app.utils import color_picker, generate_points, version
+from app.utils import color_picker, generate_points, version, load_config
 from app.knn_canvas import canvas_determine
-from app.utils import load_config
+
 config = load_config()
 
 # Canvas dimensions
@@ -32,16 +33,28 @@ def main():
 
     select_points = generate_points(BORDER_XH - BORDER_XL, BORDER_YH - BORDER_YL, numLabels, numPoints)
 
-    base = Tk()
+    base = tk.Tk()
     base.resizable(False, False)
     base.title("tk2NN")
-    base.configure(bg=BG_COLOR)
     base.geometry(f"{WIDTH}x{HEIGHT}")
 
-    distType = IntVar(value=1)
+    # Set background image
+    bg_image = tk.PhotoImage(file="assets/bg.png")
+    bg_label = tk.Label(base, image=bg_image)
+    bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-    pointSpace = Canvas(base, width=BORDER_XH - BORDER_XL, height=BORDER_YH - BORDER_YL,
-                        borderwidth=4, relief=SUNKEN, background='black', cursor='dot')
+
+    # Style the update button
+    style = ttk.Style()
+    style.configure("Custom.TButton",
+                    background=BUTTON_COLOR,
+                    foreground="black",
+                    padding=5)
+
+    distType = tk.IntVar(value=1)
+
+    pointSpace = tk.Canvas(base, width=BORDER_XH - BORDER_XL, height=BORDER_YH - BORDER_YL,
+                           borderwidth=4, relief=tk.SUNKEN, background='black', cursor='dot')
     pointSpace.grid(row=0, column=0, columnspan=3, padx=(BORDER_XL, 5), pady=(BORDER_YL, 5))
 
     def update_point_space():
@@ -50,9 +63,8 @@ def main():
         canvas, _ = canvas_determine(k, distType.get(), width, height, select_points)
         colors = color_picker(select_points)
 
-        img = PhotoImage(width=width, height=height)
+        img = tk.PhotoImage(width=width, height=height)
 
-        # Build color map
         color_map = {}
         for label, color in colors.items():
             c = Color(color.hex_l)
@@ -66,7 +78,7 @@ def main():
             img.put(row, to=(0, y))
 
         pointSpace.delete("all")
-        pointSpace.create_image(0, 0, anchor=NW, image=img)
+        pointSpace.create_image(0, 0, anchor=tk.NW, image=img)
         pointSpace.image = img
 
         for point in select_points:
@@ -79,7 +91,6 @@ def main():
 
     def update_input(event=None):
         global k, numLabels, numPoints, select_points
-
         try:
             new_labels = int(FNumL.get())
             new_points = int(FNumP.get())
@@ -94,33 +105,32 @@ def main():
 
     def clear_point_space(event=None):
         global select_points
-        
         select_points = []
         pointSpace.delete("all")
 
     # Distance type radio buttons
-    typeSpace = Frame(base)
+    typeSpace = ttk.Frame(base)
     typeSpace.grid(row=0, column=3, rowspan=2, pady=(5, 5))
-    Radiobutton(typeSpace, text="Euclidean", variable=distType, value=1, command=update_point_space).pack(anchor=W)
-    Radiobutton(typeSpace, text="Manhattan", variable=distType, value=2, command=update_point_space).pack(anchor=E)
+    ttk.Radiobutton(typeSpace, text="Euclidean", variable=distType, value=1, command=update_point_space).pack(anchor=tk.W)
+    ttk.Radiobutton(typeSpace, text="Manhattan", variable=distType, value=2, command=update_point_space).pack(anchor=tk.E)
 
     # Entry fields and update button
-    labelSpace = Frame(base)
+    labelSpace = ttk.Frame(base)
     labelSpace.grid(row=1, column=0, columnspan=2, padx=25)
-    FNumL = Entry(labelSpace, bg='white', bd=3, width=ENTRY_WIDTH)
-    FNumP = Entry(labelSpace, bg='white', bd=3, width=ENTRY_WIDTH)
-    FKSet = Entry(labelSpace, bg='white', bd=3, width=ENTRY_WIDTH)
-    UpdtB = Button(labelSpace, bg=BUTTON_COLOR, activebackground=BUTTON_ACTIVE_COLOR, bd=3, text="Update", padx=3)
+    FNumL = ttk.Entry(labelSpace, width=ENTRY_WIDTH)
+    FNumP = ttk.Entry(labelSpace, width=ENTRY_WIDTH)
+    FKSet = ttk.Entry(labelSpace, width=ENTRY_WIDTH)
+    UpdtB = ttk.Button(labelSpace, text="Update", style="Custom.TButton")
     FNumL.insert(0, str(numLabels))
     FNumP.insert(0, str(numPoints))
     FKSet.insert(0, str(k))
-    FNumL.pack(side=LEFT)
-    FNumP.pack(side=LEFT)
-    FKSet.pack(side=LEFT)
-    UpdtB.pack(side=LEFT)
+    FNumL.pack(side=tk.LEFT)
+    FNumP.pack(side=tk.LEFT)
+    FKSet.pack(side=tk.LEFT)
+    UpdtB.pack(side=tk.LEFT)
 
     for entry in (FNumL, FNumP, FKSet):
-        entry.bind("<FocusIn>", lambda e, ent=entry: ent.delete(0, END))
+        entry.bind("<FocusIn>", lambda e, ent=entry: ent.delete(0, tk.END))
 
     FNumL.bind("<Return>", update_input)
     UpdtB.bind("<Button-1>", update_input)
